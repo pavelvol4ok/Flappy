@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy Bird Clone</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(to bottom, #87CEEB, #B0E0E6);
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+        }
+        canvas {
+            border: 2px solid #fff;
+        }
+        #gameOverPanel, #mainMenu, #popup, #shopPanel  {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(255, 255, 255, 0.9);
+            border: 2px solid yellow;
+            padding: 20px;
+            text-align: center;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+            font-size: 48px;
+            color: white;
+            text-shadow: 2px 2px 4px black;
+            margin: 0;
+        }
+        .button {
+            margin: 10px;
+            padding: 10px 20px;
+            background-color: #87CEEB;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 18px;
+            color: white;
+            text-shadow: 1px 1px 2px black;
+            transition: background-color 0.3s;
+        }
+        .button:hover {
+            background-color: #6EC6E3;
+        }
+        .pause-text {
+            font-size: 30px;
+            color: red;
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover {
+            color: red;
+        }
+        .button-container {
+    display: flex;
+    flex-direction: column; /* Размещаем кнопки вертикально */
+    align-items: center; /* Центрируем кнопки по горизонтали */
+}
+
+.button {
+    width: 200px; /* Установите желаемую ширину */
+    margin: 10px 0; /* Вертикальный отступ между кнопками */
+    padding: 10px; /* Более равномерные отступы */
+}
+
+.button-container {
+    display: flex;
+    flex-direction: column; /* Размещаем кнопки вертикально */
+    align-items: center; /* Центрируем кнопки по горизонтали */
+}
+
+
+
+/* Дополнительные стили для значка */
+.restart-button {
+    font-size: 20px; /* Устанавливаем размер значка */
+    background: none; /* Убираем фон, если это нужно */
+    border: none; /* Убираем рамку */
+    color: black; /* Цвет значка */
+    cursor: pointer; /* Указатель при наведении */
+    padding: 0; /* Убираем отступы */
+}
+
+/* Стилизация кнопки "Магазин" */
+#shopBtn {
+    background-color: rgb(255, 0, 0); /* Цвет кнопки */
+    border: none;
+    border-radius: 10px;
+    font-weight: bold;
+    display: block; /* Делаем кнопку блочной, чтобы отобразить ее под меню */
+    margin: 20px auto; /* Центруем кнопку */
+}
+
+
+/* Можно добавить стили затемнения для фона */
+#overlay {
+    display: none; /* Скрываем по умолчанию */
+    position: fixed; /* Фиксируем на весь экран */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* Затемнение */
+    z-index: 999; /* Лежит под окном магазина */
+}
+
+.shop-item {
+    border: 2px solid yellow; /* Желтая рамка */
+    background-color: white; /* Белый фон */
+    border-radius: 10px; /* Закругленные углы */
+    padding: 5px; /* Отступ внутри ячейки */
+    text-align: center; /* Центрирование текста */
+    width: 50px; /* Ширина ячейки */
+    height: 60px; /* Высота ячейки */
+    display: flex; /* Используем флекс для центрирования */
+    flex-direction: column; /* Вертикальное направление */
+    justify-content: center; /* Центрирование по вертикали */
+    align-items: center; /* Центрирование по горизонтали */
+}
+
+.shop-item img {
+    width: 90%; /* Ширина изображения */
+    height: auto; /* Автоматическая высота */
+}
+
+.shop-item p {
+    font-size: 10px; /* Размер текста "Выбрано" */
+    margin: 0; /* Убираем отступы у текста */
+}
+    </style>
+</head>
+<body>
+<canvas id="gameCanvas" width="400" height="600"></canvas>
+
+
+
+<div id="mainMenu">
+    <h1>Flappy Bird</h1>
+    <div id="coinDisplay" style="color: rgb(0, 0, 0); font-size: 20px; margin-top: 10px; margin-bottom: 10px;">0 💰</div>
+    <div class="button-container">
+        <button id="easyBtn" class="button">Легко</button>
+        <button id="mediumBtn" class="button">Средне</button>
+        <button id="hardBtn" class="button">Сложно</button>
+        <button id="shopBtn" class="button" style="background-color: rgb(255, 0, 0); margin-top: 10px;">Магазин</button> 
+        <button id="earnButton" class="button">Заработать 100 монет</button>
+    </div>
+</div>
+
+<!-- Окно магазина -->
+<div id="shopPanel" style="display:none;">
+    <h2>Магазин</h2>
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
+        <div class="shop-item" data-index="0" data-cost="100">
+            <img src="bird0.png" alt="Птичка" />
+            <p>✔</p>
+        </div>
+        <div class="shop-item" data-index="1" data-cost="100">
+            <img src="question.png" alt="?" />
+            <p>100 💰</p>
+        </div>
+        <div class="shop-item" data-index="2" data-cost="100">
+            <img src="question.png" alt="?" />
+            <p>100 💰</p>
+        </div>
+        <div class="shop-item" data-index="3" data-cost="100">
+            <img src="question.png" alt="?" />
+            <p>100 💰</p>
+        </div>
+        <div class="shop-item" data-index="4" data-cost="100">
+            <img src="question.png" alt="?" />
+            <p>100 💰</p>
+        </div>
+        <div class="shop-item" data-index="5" data-cost="100">
+            <img src="question.png" alt="?" />
+            <p>100 💰</p>
+        </div>
+        <div class="shop-item" data-index="6" data-cost="100">
+            <img src="question.png" alt="?" />
+            <p>100 💰</p>
+        </div>
+        <div class="shop-item" data-index="7" data-cost="100">
+            <img src="question.png" alt="?" />
+            <p>100 💰</p>
+        </div>
+        <div class="shop-item" data-index="8" data-cost="100">
+            <img src="question.png" alt="?" />
+            <p>100 💰</p>
+        </div>
+        <div class="shop-item" data-index="9" data-cost="100">
+            <img src="question.png" alt="?" />
+            <p>100 💰</p>
+        </div>
+        <div class="shop-item" data-index="10" data-cost="100">
+            <img src="question.png" alt="?" />
+            <p>100 💰</p>
+        </div>
+        <div class="shop-item" data-index="11" data-cost="100">
+            <img src="question.png" alt="?" />
+            <p>100 💰</p>
+        </div>
+    </div>
+    <button id="closeShopBtn" class="button">Закрыть</button>
+</div>
+
+<div id="gameOverPanel" style="display:none;">
+    <h2>Игра окончена</h2>
+    <p>Ваш счет: <span id="scoreDisplay"></span></p>
+    <p>Рекорд: <span id="highScoreDisplay"></span></p>
+    <p>Заработанные монеты: <span id="coinsDisplay"></span></p> <!-- Это строка добавлена для отображения монет -->
+    <div style="display: flex; justify-content: center; gap: 10px;"> <!-- Flexbox для центровки -->
+        <button id="restartBtn" class="button" style="width: 120px;">&#8635</button> <!-- Указываем ширину кнопки -->
+        <button id="menuBtn" class="button" style="width: 120px;">Меню</button>
+    </div>
+</div>
+
+<div class="pause-text" id="pauseText" style="display: none;">Пауза</div>
+
+<div id="popup" class="popup">
+    <div class="popup-content">
+        <span class="close" id="closePopup">&times;</span>
+        <h2>Информация об игре</h2>
+        <p>Это простая версия игры Flappy Bird.</p>
+        <button id="confirm" class="button">Закрыть</button>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const PIPE_WIDTH = 30; // Ширина труб
+    const GAP = 150; // Расстояние между верхней и нижней трубой
+
+    const SPEED_EASY = 1;  // Скорость для легкого уровня
+    const SPEED_MEDIUM = 2;  // Скорость для среднего уровня
+    const SPEED_HARD = 3;  // Скорость для сложного уровня
+
+    let pipeSpeed = SPEED_EASY; // Начальная скорость
+
+    const GAP_EASY = 250;   // Расстояние для легкого уровня
+const GAP_MEDIUM = 200; // Расстояние для среднего уровня
+const GAP_HARD = 200;    // Расстояние для сложного уровня
+
+let totalCoins = 0; // Общее количество монет
+let selectedBirdIndex = 0; // Индекс выбранной птички
+const shopItems = document.querySelectorAll('.shop-item');
+let coinsEarned = 0; // Заработанные монеты за текущую игру
+
+let gap = GAP_EASY; // Начальное расстояние
+
+let bird = {
+    x: 50,
+    y: 150,
+    width: 40,
+    height: 30,
+    gravity: 0.2,
+    lift: -5,
+    velocity: 0,
+    angle: 0, // Угол наклона птички
+    rotationSpeed: 0.1 // Скорость вращения
+};
+    let pipes = [];
+    let score = 0;
+    let highScore = 0;
+    let isGameOver = false;
+    let isPaused = false;
+
+    const birdImages = [];
+for (let i = 0; i < 12; i++) {
+    const img = new Image();
+    img.src = `bird${i}.png`;
+    birdImages.push(img);
+}
+
+    const backgroundImage = new Image();
+    backgroundImage.src = 'background.png';
+
+    function drawBackground() {
+        ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
+    }
+
+    function addPipe() {
+    const topPipeHeight = Math.floor(Math.random() * (canvas.height - gap - 50)); 
+    pipes.push({
+        top: { x: canvas.width, y: 0, width: PIPE_WIDTH, height: topPipeHeight },
+        bottom: { x: canvas.width, y: topPipeHeight + gap, width: PIPE_WIDTH, height: canvas.height - topPipeHeight - gap }
+    });
+}
+
+function drawBird() {
+    ctx.save(); // Сохраняем состояние canvas
+    ctx.translate(bird.x + bird.width / 2, bird.y + bird.height / 2); // Перемещаем центр для вращения
+    ctx.rotate(bird.angle); // Вращаем canvas по углу птички
+
+    ctx.drawImage(birdImages[selectedBirdIndex], -bird.width / 2, -bird.height / 2, bird.width, bird.height); // Рисуем птичку
+    ctx.restore(); // Восстанавливаем canvas
+}
+
+    const TIP_WIDTH = 40; // Ширина наконечников
+    const RADIUS = 5; // Радиус закругления
+
+    function drawPipes() {
+        pipes.forEach(pipe => {
+            ctx.fillStyle = 'green';
+            ctx.fillRect(pipe.top.x, pipe.top.y, PIPE_WIDTH, pipe.top.height);
+            ctx.strokeStyle = 'black';
+            ctx.strokeRect(pipe.top.x, pipe.top.y, PIPE_WIDTH, pipe.top.height);
+            ctx.fillStyle = 'green';
+            drawRoundedRect(pipe.top.x + (PIPE_WIDTH - TIP_WIDTH) / 2, pipe.top.y + pipe.top.height - 20, TIP_WIDTH, 20, RADIUS);
+            ctx.fillRect(pipe.bottom.x, pipe.bottom.y, PIPE_WIDTH, pipe.bottom.height);
+            ctx.strokeRect(pipe.bottom.x, pipe.bottom.y, PIPE_WIDTH, pipe.bottom.height);
+            ctx.fillStyle = 'green';
+            drawRoundedRect(pipe.bottom.x + (PIPE_WIDTH - TIP_WIDTH) / 2, pipe.bottom.y, TIP_WIDTH, 20, RADIUS);
+        });
+    }
+
+    function drawRoundedRect(x, y, width, height, radius) {
+        ctx.fillStyle = 'green';
+        ctx.strokeStyle = 'black';
+        ctx.lineWidth = 2;
+
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.lineTo(x + width - radius, y);
+        ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+        ctx.lineTo(x + width, y + height - radius);
+        ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+        ctx.lineTo(x + radius, y + height);
+        ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+        ctx.lineTo(x, y + radius);
+        ctx.quadraticCurveTo(x, y, x + radius, y);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+    }
+
+        function update() {
+            if (isPaused) return;
+
+            bird.velocity += bird.gravity;
+            bird.y += bird.velocity;
+
+            // Устанавливаем угол птички в зависимости от ее движения
+            bird.angle = Math.min(Math.max(bird.velocity / 10, -Math.PI / 4), Math.PI / 2); // Угол наклона
+
+            if (bird.y + bird.height >= canvas.height) {
+                bird.y = canvas.height - bird.height;
+                endGame();
+            }
+
+            pipes.forEach(pipe => {
+                pipe.top.x -= pipeSpeed; // Используем pipeSpeed
+                pipe.bottom.x -= pipeSpeed; // Используем pipeSpeed
+
+                if (pipe.top.x + pipe.top.width < 0) {
+                    pipes.shift();
+                    score++;
+                    updateCoins(); // Вызываем функцию для начисления монет
+                }
+
+                if (
+                    bird.x < pipe.top.x + pipe.top.width &&
+                    bird.x + bird.width > pipe.top.x &&
+                    (bird.y < pipe.top.height || bird.y + bird.height > pipe.bottom.y)
+                ) {
+                    endGame();
+                }
+            });
+
+            if (pipes.length === 0 || pipes[pipes.length - 1].top.x < canvas.width - 250) {
+                addPipe();
+            }
+        }
+
+        function endGame() {
+            isGameOver = true;
+            totalCoins += coinsEarned; // Добавляем к общему количеству монет
+            if (score > highScore) {
+                highScore = score;
+            }
+            document.getElementById('scoreDisplay').innerText = score;
+            document.getElementById('highScoreDisplay').innerText = highScore;
+            document.getElementById('coinsDisplay').innerText = `+${coinsEarned} 💰`; // Отображение заработанных монет
+            document.getElementById('gameOverPanel').style.display = 'block'; // Показываем панель окончания игры
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBackground();
+            drawBird();
+            drawPipes();
+            ctx.fillStyle = 'white';
+            ctx.font = '20px Arial';
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 2;
+            ctx.strokeText(`Счет: ${score}`, 10, 25);
+            ctx.fillText(`Счет: ${score}`, 10, 25);
+            
+            if (isPaused) {
+                document.getElementById('pauseText').style.display = 'block';
+            } else {
+                document.getElementById('pauseText').style.display = 'none';
+            }
+        }
+
+        function updateCoins() {
+    if (isGameOver) return;
+
+    if (score % levelCoinThreshold() === 0 && score > 0) {
+        coinsEarned++;
+        // Обновление отображения монет в главном меню
+        updateCoinDisplay();
+    }
+}  
+
+        function levelCoinThreshold() {
+            switch (pipeSpeed) {
+                case SPEED_EASY:
+                    return 15; // Пройденные трубы для легкого уровня
+                case SPEED_MEDIUM:
+                    return 10; // Пройденные трубы для среднего уровня
+                case SPEED_HARD:
+                    return 5;  // Пройденные трубы для сложного уровня
+                default:
+                    return 15; // По умолчанию
+            }
+        }
+
+        function updateCoinDisplay() {
+        document.getElementById('coinDisplay').innerText = `${totalCoins} 💰`;
+    }
+
+    shopItems.forEach(item => {
+        item.addEventListener('click', () => {
+            const index = parseInt(item.getAttribute('data-index'));
+            const cost = parseInt(item.getAttribute('data-cost'));
+
+            if (index === selectedBirdIndex) {
+                return; // Игнорируем клик на уже выбранной птичке
+            }
+
+            if (item.querySelector('img').src.includes('question.png')) {
+                // Проверяем, достаточно ли монет для открытия
+                if (totalCoins >= cost) {
+                    totalCoins -= cost; // Уменьшаем монеты
+                    item.querySelector('img').src = `bird${index}.png`; // Меняем изображение птички (необходимо добавить соответствующие изображения)
+                    item.querySelector('p').innerText = 'Выбрать'; // Обновляем текст
+                    updateCoinDisplay(); // Обновляем отображение монет
+
+                    // Удаляем текст о цене, когда ячейка открыта
+                    item.removeAttribute('data-cost');
+                }
+            } else {
+                // Смена выбранной птички
+                setSelectedBird(index);
+            }
+        });
+    });
+
+     // Функция для установки выбранной птички
+     function setSelectedBird(index) {
+        shopItems[selectedBirdIndex].querySelector('p').innerText = 'Выбрать'; // Сбрасываем текст старой птички
+        selectedBirdIndex = index; // Устанавливаем новый индекс
+        shopItems[selectedBirdIndex].querySelector('p').innerText = '✔'; // Устанавливаем галочку под новой выбранной птичкой
+    }
+
+    // Пример для увеличения количества монет (используйте вашу логику здесь)
+    function earnCoins(amount) {
+        totalCoins += amount;
+        updateCoinDisplay();
+    }
+
+    function gameLoop() {
+        if (!isGameOver) {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+    }
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'p') {
+            isPaused = !isPaused;
+            if (!isPaused && !isGameOver) {
+                gameLoop();
+            }
+        }
+        if (!isGameOver && !isPaused && event.key === ' ') { 
+            bird.velocity = bird.lift; 
+        }
+    });
+
+    document.getElementById('easyBtn').addEventListener('click', () => {
+    startGame(SPEED_EASY);
+});
+document.getElementById('mediumBtn').addEventListener('click', () => {
+    startGame(SPEED_MEDIUM);
+});
+document.getElementById('hardBtn').addEventListener('click', () => {
+    startGame(SPEED_HARD);
+});
+
+function startGame(speed) {
+    resetGame();
+    pipeSpeed = speed;
+
+    switch (speed) {
+        case SPEED_EASY:
+            gap = GAP_EASY;
+            break;
+        case SPEED_MEDIUM:
+            gap = GAP_MEDIUM;
+            break;
+        case SPEED_HARD:
+            gap = GAP_HARD;
+            break;
+    }
+
+    updateCoinDisplay(); // Обновление отображения монет при старте игры
+    document.getElementById('mainMenu').style.display = 'none';
+    gameLoop();
+}
+
+function resetGame() {
+    pipes = [];
+    score = 0;
+    bird.y = 150;
+    bird.velocity = 0;
+    bird.angle = 0;
+    isGameOver = false;
+    isPaused = false;
+    coinsEarned = 0; // Сброс заработанных монет
+    document.getElementById('gameOverPanel').style.display = 'none';
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawBackground();
+    document.getElementById('pauseText').style.display = 'none';
+    updateCoinDisplay(); // Обновление отображения монет при сбросе игры
+}
+
+
+    document.getElementById('mainMenu').style.display = 'block'; // Сделать меню видимым
+
+    document.getElementById('menuBtn').addEventListener('click', () => {
+    resetGame(); // Сбросить игру
+    document.getElementById('gameOverPanel').style.display = 'none'; // Скрыть табло "Игра окончена"
+    document.getElementById('mainMenu').style.display = 'block'; // Показать главное меню
+});
+document.getElementById('restartBtn').addEventListener('click', () => {
+    resetGame(); // Сбрасываем игру
+    document.getElementById('gameOverPanel').style.display = 'none'; // Скрываем табло "Игра окончена"
+    gameLoop(); // Запускаем игровой цикл
+});
+
+document.getElementById('shopBtn').addEventListener('click', () => {
+    document.getElementById('mainMenu').style.display = 'none'; // Скрываем главное меню
+    document.getElementById('shopPanel').style.display = 'block'; // Показываем магазин
+});
+
+// Обработчик для кнопки "Закрыть" в окне магазина
+document.getElementById('closeShopBtn').addEventListener('click', () => {
+    document.getElementById('shopPanel').style.display = 'none'; // Скрываем магазин
+    document.getElementById('mainMenu').style.display = 'block'; // Возвращаем главное меню
+});
+
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'p') {
+        isPaused = !isPaused;
+        if (!isPaused && !isGameOver) {
+            gameLoop();
+        }
+    }
+    if (!isGameOver && !isPaused && (event.key === ' ' || event.key === 'ArrowUp')) { 
+        bird.velocity = bird.lift; 
+    }
+});
+
+// Добавление поддержки сенсорных устройств
+document.addEventListener('touchstart', (event) => {
+    event.preventDefault(); // Предотвращаем скроллинг страницы, если это нужно
+    if (!isGameOver && !isPaused) { 
+        bird.velocity = bird.lift; 
+    }
+});
+
+// Для тестирования, например, добавим кнопку, чтобы заработать 100 монет
+document.getElementById('earnButton').addEventListener('click', () => {
+        earnCoins(100);
+    });
+
+</script>
